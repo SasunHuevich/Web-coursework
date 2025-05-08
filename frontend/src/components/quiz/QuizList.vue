@@ -12,10 +12,11 @@
                 <button class="btn btn-sm btn-info mr-2" @click="toggleDescription(quiz.id)">
                   {{ quiz.showDescription ? "Скрыть описание" : "Показать описание" }}
                 </button>
-                <button class="btn btn-sm btn-primary" @click="startQuiz(quiz.id)">Пройти викторину</button>
+                <button class="btn btn-sm btn-primary mr-2" @click="startQuiz(quiz.id)">Пройти викторину</button>
+                <button class="btn btn-sm btn-secondary" @click="viewResults(quiz.id)">Результаты</button>
               </div>
             </div>
-            <!-- Описание викторины -->
+
             <div v-if="quiz.showDescription" class="mt-2 p-2" style="background-color: #e7f3fe; border-radius: 5px;">
               <p>{{ quiz.description }}</p>
             </div>
@@ -37,19 +38,17 @@ export default {
   name: "AllQuizzes",
   data() {
     return {
-      quizzes: [] // Массив для хранения всех викторин
+      quizzes: []
     };
   },
   methods: {
-    // Получение всех викторин
     fetchAllQuizzes() {
       http
         .get("/quizList")
         .then(response => {
-          // Добавляем свойство showDescription для каждой викторины
           this.quizzes = response.data.map(quiz => ({
             ...quiz,
-            showDescription: false // Изначально описание скрыто
+            showDescription: false
           }));
         })
         .catch(error => {
@@ -57,27 +56,44 @@ export default {
         });
     },
 
-    // Метод для начала викторины
-    startQuiz(quizId) {
-      this.$router.push({ path: `/quiz/${quizId}` }); // Здесь предполагается, что у вас есть маршрут для прохождения викторины
+    async deleteUserAnswers(quizId) {
+      console.log(quizId);
+      try {
+        
+        await http.delete('/deleteUserAnswers', {
+          data: { quizId }
+        });
+        console.log('Ответы успешно удалены.');
+      } catch (error) {
+        console.error('Ошибка при удалении ответов:', error);
+      }
     },
 
-    // Метод для переключения видимости описания
+    
+    async startQuiz(quizId) {
+      await this.deleteUserAnswers(quizId);
+      this.$router.push({ path: `/quiz/${quizId}` });
+    },
+
+    
     toggleDescription(quizId) {
       const quiz = this.quizzes.find(q => q.id === quizId);
       if (quiz) {
-        quiz.showDescription = !quiz.showDescription; // Переключаем видимость описания
+        quiz.showDescription = !quiz.showDescription;
       }
+    },
+
+    viewResults(quizId) {
+      this.$router.push({ path: `/quizResults/${quizId}` });
     }
   },
   mounted() {
-    this.fetchAllQuizzes(); // Получаем все викторины при монтировании компонента
+    this.fetchAllQuizzes();
   }
 };
 </script>
 
 <style scoped>
-/* Стили для кнопок и списка викторин */
 .list-group-item {
   cursor: pointer;
 }

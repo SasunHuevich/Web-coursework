@@ -29,10 +29,20 @@ import AddQuiz from "./components/quiz/AddQuiz.vue";
 import AddQuiz1 from "./components/quiz/AddQuiz1.vue";
 import AddQuestions from "./components/quiz/AddQuestions.vue";
 import MyQuiz from "./components/quiz/MyQuiz.vue";
-import Quiz from "./components/quiz/GoQuiz.vue"
+import Quiz from "./components/quiz/GoQuiz.vue";
+import QuizResults from "./components/quiz/QuizResults.vue";
 
 // определяем маршруты
 const routes = [
+    {
+        path: "/quizResults/:id",
+        name: "QuizResults",
+        component: QuizResults/*,
+        meta: {
+            title: "Мои викторины"
+        }*/
+    },
+
     {
         path: "/quiz/:id",
         name: "GoQuiz",

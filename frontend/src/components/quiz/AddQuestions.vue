@@ -1,6 +1,6 @@
 <template>
     <div class="container mt-5">
-        <!-- Заголовок над карточкой -->
+        <!-- Заголовок -->
         <h4 class="text-center mb-4">Добавление вопросов к викторине</h4>
 
         <div class="row justify-content-center">
@@ -116,13 +116,12 @@ export default {
                 wrongAnswer2: "",
                 wrongAnswer3: ""
             },
-            questions: [] // массив для хранения списка вопросов
+            questions: []
         };
     },
     methods: {
-        // Метод для добавления вопроса
         addQuestion(e) {
-            e.preventDefault(); // Остановка отправки формы
+            e.preventDefault();
             const data = {
                 quiz_id: this.question.quiz_id,
                 quetion_id: this.question.id,
@@ -133,15 +132,11 @@ export default {
                 wrongAnswer3: this.question.wrongAnswer3
             };
 
-            // Отправка данных на сервер
             http
                 .post("/addQuestion", data)
                 .then(response => {
                     this.question.id = response.data.id;
-                    // Очистка формы для добавления следующего вопроса
                     this.resetForm();
-
-                    // После успешного добавления, обновляем список вопросов
                     this.fetchQuestions();
                 })
                 .catch(e => {
@@ -149,7 +144,6 @@ export default {
                 });
         },
 
-        // Метод для сброса формы
         resetForm() {
             this.question.text = "";
             this.question.correctAnswer = "";
@@ -158,16 +152,14 @@ export default {
             this.question.wrongAnswer3 = "";
         },
 
-        // Метод для получения списка вопросов
         fetchQuestions() {
             http
                 .get(`/getQuestionsByQuizId/${this.question.quiz_id}`)
                 .then(response => {
-                    this.questions = response.data; // записываем вопросы в массив questions
-                    // Добавляем поле showAnswers для каждого вопроса
+                    this.questions = response.data;
                     this.questions.forEach(q => {
                         q.showAnswers = false;
-                        q.answers = []; // Инициализируем массив ответов
+                        q.answers = [];
                     });
                 })
                 .catch(e => {
@@ -175,26 +167,24 @@ export default {
                 });
         },
 
-        // Метод для отображения ответов
+        
         showAnswers(questionId) {
             const question = this.questions.find(q => q.id === questionId);
             if (!question.showAnswers) {
-                // Если ответы ещё не загружены, получаем их с сервера
                 this.fetchAnswers(questionId, question);
             } else {
-                // Если ответы уже загружены, просто переключаем их видимость
                 question.showAnswers = !question.showAnswers;
             }
         },
 
-        // Метод для получения ответов по questionId
+        
         fetchAnswers(questionId, question) {
             http
                 .get(`/getAnswersByQuestionId/${questionId}`)
                 .then(response => {
                     console.log("Ответы:", response.data);
-                    question.answers = response.data; // Сохраняем ответы в соответствующем вопросе
-                    question.showAnswers = true; // Показываем ответы
+                    question.answers = response.data;
+                    question.showAnswers = true;
                     console.log("Вопрос с ответами:", question);
                 })
                 .catch(e => {
@@ -202,13 +192,13 @@ export default {
                 });
         },
 
-        // Метод для удаления вопроса
+        
         confirmDelete(questionId) {
             if (confirm("Вы уверены, что хотите удалить этот вопрос?")) {
                 http
                     .delete(`/deleteQuestion/${questionId}`)
                     .then(() => {
-                        this.fetchQuestions(); // обновляем список вопросов после удаления
+                        this.fetchQuestions();
                     })
                     .catch(e => {
                         console.log(e);
@@ -217,7 +207,7 @@ export default {
         }
     },
     mounted() {
-        // Загружаем список вопросов при монтировании компонента
+        
         this.fetchQuestions();
     }
 };
@@ -225,7 +215,7 @@ export default {
 
 <style scoped>
 .list-group-item-success {
-    background-color: #d4edda; /* светло-зеленый фон для правильного ответа */
-    color: #155724; /* темно-зеленый цвет текста */
+    background-color: #d4edda;
+    color: #155724;
 }
 </style>

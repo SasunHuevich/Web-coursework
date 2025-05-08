@@ -1,6 +1,6 @@
 <template>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Добавить викторину</h1> <!-- Заголовок вынесен над карточкой -->
+        <h1 class="text-center mb-4">Добавить викторину</h1> <!-- Заголовок -->
         <div class="card col-md-6 mx-auto">
             <div class="card-body">
                 <div v-if="!submitted">
@@ -55,7 +55,7 @@
                 discipline: {
                     id: null,
                     name: "",
-                    description: "" // Добавлено поле для описания викторины
+                    description: ""
                 },
                 submitted: false
             };
@@ -65,13 +65,12 @@
                 e.preventDefault();
                 var data = {
                     name: this.discipline.name,
-                    description: this.discipline.description // Отправляем описание
+                    description: this.discipline.description
                 };
                 http
                     .post("/addQuiz1", data)
                     .then(response => {
                         this.discipline.id = response.data.id;
-                        // Перенаправление на страницу добавления вопросов
                         this.$router.push(`/addQuestions/${this.discipline.id}`);
                     })
                     .catch(e => {
@@ -85,7 +84,7 @@
                 this.discipline = {
                     id: null,
                     name: "",
-                    description: "" // Очищаем описание
+                    description: ""
                 };
             }
         }

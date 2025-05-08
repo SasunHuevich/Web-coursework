@@ -6,9 +6,8 @@ module.exports = (app) => {
 
     const questionController = require('../controller/questionsController')
     
-    //получение списка учебных дисциплин
 
-    app.post('/api/addQuiz1', [authJwt.verifyToken], quizController.create); //добавление данных учебной дисциплины
+    app.post('/api/addQuiz1', [authJwt.verifyToken], quizController.create);
 
 
     app.post('/api/addQuestion', [authJwt.verifyToken], questionController.create);
@@ -20,7 +19,6 @@ module.exports = (app) => {
 
 
     app.get('/api/getAnswersByQuestionId/:questionId', [authJwt.verifyToken], questionController.getAnswersByQuestionId)
-    //получение данных учебной дисциплины по id
 
     app.get('/api/getQuizzesByUser/:userId', [authJwt.verifyToken], quizController.getQuizzesByUser);
 
@@ -31,4 +29,12 @@ module.exports = (app) => {
     app.post('/api/submitResults', [authJwt.verifyToken], quizController.submitResults);
 
     app.get('/api/getQuiz/:id', [authJwt.verifyToken], quizController.getQuiz);
+
+
+    app.post('/api/saveAnswer', [authJwt.verifyToken], quizController.saveAnswer);
+
+    app.delete('/api/deleteUserAnswers', [authJwt.verifyToken], quizController.deleteUserAnswers);
+    
+
+    app.get('/api/results/:quizId', [authJwt.verifyToken], quizController.getResults);
 };

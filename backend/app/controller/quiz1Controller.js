@@ -1,9 +1,11 @@
 var db = require('../config/db.config.js');
 var globalFunctions = require('../config/global.functions.js');
 var quiz = db.quiz1;
-//const {deleteQuestion} = require('./questionsController.js');
 var question = db.question;
 var answer = db.answer;
+var result = db.result;
+var user = db.user;
+var result = db.result;
 
 exports.create = (req, res) => {
     console.log(req.body);
@@ -35,47 +37,60 @@ exports.create = (req, res) => {
   
 exports.getQuizzesByUser = async (req, res) => {
     try {
-        const userId = req.params.userId; // Получаем userId из параметров URL
+        const userId = req.params.userId;
         if (!userId) {
             return res.status(400).json({ message: "User ID is required" });
         }
 
-        // Находим викторины, созданные пользователем с данным userId
         const quizzes = await quiz.findAll({
-            where: { user_id: req.userId } // Предполагается, что в модели есть поле userId
+            where: { user_id: req.userId } 
         });
 
-        res.status(200).json(quizzes); // Возвращаем найденные викторины
+        res.status(200).json(quizzes); 
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// Внутренняя функция для удаления вопроса
+
 const deleteQuestion = async (questionId) => {
     return question.destroy({
         where: { id: questionId }
     });
 };
 
-// Контроллер для удаления викторины и связанных вопросов
+const deleteResult = async (resultId) => {
+    return result.destroy({
+        where: {id: resultId }
+    });
+};
+
+
 exports.deleteQuizWithQuestions = async (req, res) => {
     console.log(req.params);
-    const quizId = req.params.id; // Получаем ID викторины из параметров
+    const quizId = req.params.id;
 
     try {
-        // Получаем все вопросы, связанные с викториной
+        
         const questions = await question.findAll({
             where: { quiz_id: quizId }
         });
 
-        // Удаляем все вопросы
+        const results = await result.findAll({
+            where: { quiz_id: quizId }
+        });
+
+        
         for (const question of questions) {
-            await deleteQuestion(question.id); // Вызываем deleteQuestion для удаления вопроса
+            await deleteQuestion(question.id);
         }
 
-        // Теперь удаляем викторину
+
+        for (const result of results) {
+            await deleteResult(result.id);
+        }
+        
         await quiz.destroy({
             where: { id: quizId }
         });
@@ -89,7 +104,7 @@ exports.deleteQuizWithQuestions = async (req, res) => {
 
 exports.getAllQuizzes = async (req, res) => {
     try {
-        const quizzes = await quiz.findAll(); // Здесь замените Quiz на название вашей модели
+        const quizzes = await quiz.findAll();
         res.status(200).json(quizzes);
     } catch (error) {
         console.error(error);
@@ -104,12 +119,12 @@ exports.getQuiz = async (req, res) => {
         const quizz = await quiz.findByPk(quizId);
         const questions = await question.findAll({ where: { quiz_id: quizId } });
 
-        // Здесь можно добавить логику для получения ответов для каждого вопроса
+        
         const questionWithAnswers = await Promise.all(questions.map(async (question) => {
             const answers = await answer.findAll({ where: { question_id: question.id } });
             return {
                 ...question.get(),
-                answers // Добавляем ответы к вопросу
+                answers
             };
         }));
 
@@ -123,30 +138,148 @@ exports.getQuiz = async (req, res) => {
 
 exports.submitResults = async (req, res) => {
     console.log(req.body);
-    const { userId, quizId, results } = req.body; // userId, quizId и массив results из тела запроса
+    const { userId, quizId, results } = req.body;
 
     try {
-        // Проверяем, существует ли викторина
+        
         const quizz = await quiz.findByPk(quizId);
         if (!quizz) {
             return res.status(404).json({ message: 'Викторина не найдена' });
         }
 
-        // Сохраняем результаты
+        
         const saveResultsPromises = results.map(result => {
             return Result.create({
-                user_id: userId, // Используем userId из тела запроса
-                quiz_id: quizId, // Используем quizId из тела запроса
-                question_id: result.questionId, // question_id из результата
-                user_answer: result.userAnswer, // user_answer из результата
-                is_correct: result.isCorrect // is_correct из результата
+                user_id: userId,
+                quiz_id: quizId,
+                question_id: result.questionId,
+                user_answer: result.userAnswer,
+                is_correct: result.isCorrect
             });
         });
 
-        await Promise.all(saveResultsPromises); // Ожидаем завершения всех операций
+        await Promise.all(saveResultsPromises);
         res.status(200).json({ message: 'Результаты успешно сохранены' });
     } catch (error) {
         console.error('Ошибка при сохранении результатов:', error);
         res.status(500).json({ message: 'Ошибка сервера' });
     }
 };
+
+
+exports.saveAnswer = async (req, res) => {
+    try {
+        const user_id = req.userId;
+        console.log(user_id);
+      const {quiz_id, question_id, user_answer, is_correct } = req.body;
+      console.log(req.body)        
+      
+      const newAnswer = await result.create({
+        user_id,
+        quiz_id,
+        question_id,
+        user_answer,
+        is_correct
+      });
+  
+      
+      return res.status(201).json({
+        message: 'Ответ успешно сохранен!',
+        answer: newAnswer
+      });
+    } catch (error) {
+      console.error('Ошибка при сохранении ответа:', error);
+      return res.status(500).json({ message: 'Ошибка сервера при сохранении ответа.' });
+    }
+  };
+
+
+exports.deleteUserAnswers = async (req, res) => {
+    console.log("gggg");
+    const userId = req.userId;
+    const quizId = req.body.quizId;
+    console.log(userId);
+    console.log(quizId);
+    try {
+      
+      await result.destroy({
+        where: {
+          user_id: userId,
+          quiz_id: quizId
+        }
+      });
+  
+      res.status(200).json({ message: 'Ответы успешно удалены.' });
+    } catch (error) {
+      console.error('Ошибка при удалении ответов:', error);
+      res.status(500).json({ error: 'Ошибка при удалении ответов.' });
+    }
+};
+
+exports.getResults = async (req, res) => {
+    const quizId = req.params.quizId;
+    const currentUserId = req.userId;
+
+    try {
+        
+        const results = await result.findAll({
+            where: { quiz_id: quizId },
+            attributes: ['user_id', 'is_correct'],
+        });
+
+        
+        const userIds = [...new Set(results.map(result => result.user_id))];
+
+        
+        const users = await user.findAll({
+            where: {
+                id: userIds
+            },
+            attributes: ['id', 'username']
+        });
+
+        
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user.id] = user.username;
+        });
+
+        
+        const userResults = {};
+
+        results.forEach(answer => {
+            const userId = answer.user_id;
+            const userName = userMap[userId];
+
+            
+            if (!userResults[userId]) {
+                userResults[userId] = {
+                    userId: userId,
+                    userName: userName,
+                    correctAnswers: 0,
+                    totalAnswers: 0
+                };
+            }
+
+            
+            userResults[userId].totalAnswers += 1;
+            if (answer.is_correct) {
+                userResults[userId].correctAnswers += 1;
+            }
+        });
+
+        
+        const responseResults = Object.values(userResults);
+
+        
+        responseResults.sort((a, b) => b.correctAnswers - a.correctAnswers);
+
+        
+        return res.status(200).json({ results: responseResults, currentUserId });
+    } catch (error) {
+        console.error('Ошибка при получении результатов:', error);
+        res.status(500).json({ error: 'Ошибка при получении результатов.' });
+    }
+};
+
+

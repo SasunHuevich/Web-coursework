@@ -1,6 +1,8 @@
 <template>
   <div class="container mt-5">
     <h3 class="text-center mb-4">{{ quiz.name }}</h3>
+    
+    <!-- Вопросы во время прохождения теста -->
     <div v-if="currentQuestion && !quizCompleted">
       <div class="question">
         <h5>{{ currentQuestion.question_text }}</h5>
@@ -17,14 +19,25 @@
       </div>
     </div>
 
+    <!-- Результаты после завершения викторины -->
     <div v-else-if="quizCompleted">
       <h4>Результаты викторины:</h4>
       <div v-for="(answer, index) in answers" :key="index">
-        <p><strong>Вопрос:</strong> {{ questions.find(question => question.id === answer.questionId).question_text }}</p>
-        <p><strong>Ваш ответ:</strong> {{ answer.userAnswer }}</p>
-        <p><strong>Правильный ответ:</strong> {{ questions.find(question => question.id === answer.questionId)?.answers.find(answer => answer.is_correct === 1).answer_text }}</p>
+        <p style="font-size: 1.2em;"><strong>Вопрос:</strong> {{ questions.find(question => question.id === answer.question_id)?.question_text }}</p>
+
+        
+        <p :class="{'text-danger': !answer.is_correct, 'text-success': answer.is_correct}">
+          <strong>Ваш ответ:</strong> {{ answer.user_answer }}
+        </p>
+
+
+        <p>
+          <strong>Правильный ответ:</strong> {{ questions.find(question => question.id === answer.question_id)?.answers.find(a => a.is_correct === 1)?.answer_text }}
+        </p>
+
         <hr>
       </div>
+
       <button class="btn btn-primary" @click="finishQuiz">Завершить</button>
     </div>
 
@@ -47,24 +60,23 @@ export default {
       currentQuestionIndex: 0,
       answers: [],
       shuffledAnswers: [],
-      quizCompleted: false, // Состояние завершенности викторины
+      quizCompleted: false,
     };
   },
   computed: {
     currentQuestion() {
-      return this.questions[this.currentQuestionIndex]; // Получаем текущий вопрос
+      return this.questions[this.currentQuestionIndex];
     }
   },
   methods: {
-    // Получение данных викторины
     fetchQuiz() {
       const quizId = this.$route.params.id;
       if (quizId) {
         http.get(`/getQuiz/${quizId}`)
           .then(response => {
-            console.log(response.data); // Проверяем структуру данных
+            console.log(response.data);
             this.quiz = response.data.quizz;
-            this.questions = response.data.questions; // Убедитесь, что здесь массив вопросов
+            this.questions = response.data.questions;
             console.log(this.questions);
             this.shuffleAnswers();
           })
@@ -75,72 +87,70 @@ export default {
         console.error("ID викторины не найден в URL.");
       }
     },
-    // Перемешивание ответов текущего вопроса
+    
     shuffleAnswers() {
       if (this.currentQuestion && this.currentQuestion.answers) {
         this.shuffledAnswers = [...this.currentQuestion.answers].sort(() => Math.random() - 0.5);
       }
     },
-    // Выбор ответа
+    
     selectAnswer(answer) {
-      // Проверяем, есть ли текущий вопрос
-      if (!this.currentQuestion) {
-        console.error("Текущий вопрос не определен."); // Защита от ошибок
-        return;
-      }
+  if (!this.currentQuestion) {
+    console.error("Текущий вопрос не определен.");
+    return;
+  }
 
-      // Сохраняем ответ пользователя
-      console.log(answer);
-      this.answers.push({
-        questionId: this.currentQuestion.id, // Получаем id текущего вопроса
-        userAnswer: answer.answer_text,
-        isCorrect: answer.isCorrect
-      });
+  console.log(answer);
+  const userAnswer = {
+    quiz_id: this.quiz.id,
+    question_id: this.currentQuestion.id,
+    user_answer: answer.answer_text,
+    is_correct: answer.is_correct
+  };
 
-      // Увеличиваем индекс текущего вопроса
-      this.currentQuestionIndex++;
+  
+  this.answers.push(userAnswer);
 
-      // Проверяем, достигли ли мы конца вопросов
-      if (this.currentQuestionIndex < this.questions.length) {
-        // Если вопросы остались, перемешиваем ответы следующего вопроса
-        this.shuffleAnswers();
-      } else {
-        // Если вопросов больше нет, помечаем викторину как завершенную
-        this.quizCompleted = true;
-      }
-    },
-    // Завершение викторины
+  
+  http.post("/saveAnswer", userAnswer)
+    .then(() => {
+      console.log("Ответ успешно сохранен!");
+    })
+    .catch(error => {
+      console.error("Ошибка при сохранении ответа: ", error);
+    });
+
+  
+  this.currentQuestionIndex++;
+
+  
+  if (this.currentQuestionIndex < this.questions.length) {
+    this.shuffleAnswers();
+  } else {
+    this.quizCompleted = true;
+  }
+},
+    
     finishQuiz() {
-      const results = {
-        quizId: this.quiz.id,
-        answers: this.answers
-      };
-      http.post("/submitResults", results)
-        .then(() => {
-          alert("Результаты успешно сохранены!");
-          this.$router.push("/allQuizzes");
-        })
-        .catch(error => {
-          console.error("Ошибка при сохранении результатов: ", error);
-        });
+      this.$router.push("/quizlist")
     }
   },
   mounted() {
-    this.fetchQuiz(); // Получаем данные викторины при монтировании компонента
+    this.fetchQuiz();
   }
 };
 </script>
 
 <style scoped>
 .container {
-  text-align: center; /* Центрируем текст внутри контейнера */
+  text-align: center;
 }
 
 h3 {
-  font-weight: bold; /* Жирный шрифт */
-  font-size: 24px; /* Размер шрифта */
-  margin-bottom: 20px; /* Отступ снизу */
-  color: #2c3e50; /* Цвет заголовка */
+  font-weight: bold;
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #2c3e50;
 }
 
 .question {
@@ -150,11 +160,11 @@ h3 {
 .answers {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Центрируем кнопки по горизонтали */
+  align-items: center;
 }
 
 .btn {
-  width: 100%; /* Задаем ширину кнопок, чтобы они заполняли контейнер */
-  max-width: 300px; /* Ограничиваем максимальную ширину кнопок */
+  width: 100%;
+  max-width: 300px;
 }
 </style>

@@ -2,7 +2,7 @@
 var db = require('../config/db.config.js'); // Подключение к базе данных
 var globalFunctions = require('../config/global.functions.js');
 
-var quiz = db.quizzes; // Модель квизов
+var quiz = db.quizzes;
 
 
 // Создание нового квиза
